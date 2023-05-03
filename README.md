@@ -1,6 +1,6 @@
-# weback-boiler-plate
+# Particles Blob
 
-This is a boilder plate code for webpack for a mutipage website
+Follow the instructions below to run the project after clone
 
 - npm install 
 - npm run start -> To start dev server
