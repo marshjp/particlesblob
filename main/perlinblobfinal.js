@@ -32,7 +32,7 @@ class ScrollStage {
             antialias: true,
             alpha: true
         });
-        this.renderer.setClearColor(0x333333)
+        this.renderer.setClearColor(0x000000)
 
         this.canvas = this.renderer.domElement
 
@@ -50,23 +50,27 @@ class ScrollStage {
         this.noiseAmount = 4;
 
         //LIGHT
-        this.ambientLight = new THREE.AmbientLight(0x6ff7fc, 1);
+        // this.ambientLight = new THREE.AmbientLight(0x6ff7fc, 1);
         // this.scene.add(this.ambientLight);
 
-        //DIRECTIONAL LIGHT TO REPRESENT THE MOON LIGHT IN THE SKY
-        this.directionalLight = new THREE.SpotLight(0x6ff7fc, 1);
-        this.directionalLight.position.set(0, 10, 0);
+        // //DIRECTIONAL LIGHT TO REPRESENT THE MOON LIGHT IN THE SKY
+        // this.directionalLight = new THREE.SpotLight(0x6ff7fc, 1);
+        // this.directionalLight.position.set(0, 10, 25);
         // this.scene.add(this.directionalLight);
 
-        const spotLightHelper = new THREE.SpotLightHelper(this.directionalLight);
+        // this.directionalLight2 = new THREE.SpotLight(0x6ff7fc, 1);
+        // this.directionalLight2.position.set(0, 0, -25);
+        // this.scene.add(this.directionalLight2);
+
+        // const spotLightHelper = new THREE.SpotLightHelper(this.directionalLight);
         // this.scene.add(spotLightHelper);
 
-        const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x6ff7fc, 1);
-        hemisphereLight.position.set(0, 10, 10);
-        // this.scene.add(hemisphereLight);
+        // const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x6ff7fc, 1);
+        // hemisphereLight.position.set(0, 10, 0);
+        // // this.scene.add(hemisphereLight);
 
-        const hemisophereLightHelper = new THREE.HemisphereLightHelper(hemisphereLight);
-        // this.scene.add(hemisophereLightHelper);
+        // const hemisophereLightHelper = new THREE.HemisphereLightHelper(hemisphereLight);
+        // // this.scene.add(hemisophereLightHelper);
 
         this.init()
     }
@@ -75,6 +79,7 @@ class ScrollStage {
         this.addCanvas()
         this.addCamera()
         this.addMesh()
+        this.addColors()
         this.addEventListeners()
         this.onResize()
         this.update()
@@ -97,16 +102,17 @@ class ScrollStage {
      * OBJECT
      */
     addMesh() {
-        this.geometry = new THREE.IcosahedronGeometry(2.2, 20)
+        this.geometry = new THREE.IcosahedronGeometry(2.2, 15)
         // this.geometry = new THREE.SphereGeometry(1, 100, 100);
         this.material = new THREE.PointsMaterial({
             size: 0.5,
             // color: 0x1d123c,
-            color: 0x6ff7fc,
+            // color: 0x6ff7fc,
             map: new THREE.TextureLoader().load(ballSprite),
+            blending: THREE.CustomBlending,
             transparent: true,
             depthWrite: false,
-            // vertexColors: THREE.VertexColors
+            vertexColors: true,
         });
 
         this.sphereVerticesArray = [];
@@ -121,11 +127,23 @@ class ScrollStage {
             this.sphereVerticesNormArray.push(norm);
         }
 
-        // this.mesh = new THREE.Mesh(this.geometry, this.material)
         this.mesh = new THREE.Points(this.geometry, this.material);
         this.scene.add(this.mesh);
+    }
 
-        // console.log(this.sphereVerticesNormArray);
+    addColors() {
+        // for (let i = 0; i < this.geometry.vertices.length / 4; i++) {
+        //     this.geometry.colors.push(new THREE.Color(0x6ff7fc))
+        // }
+        for (let i = 0; i < this.geometry.vertices.length; i++) {
+            if (i % 2 === 0) {
+                this.geometry.colors.push(new THREE.Color(0x300d5e))
+            } else if (i % 10 === 0) {
+                this.geometry.colors.push(new THREE.Color(0x850061))
+            } else {
+                this.geometry.colors.push(new THREE.Color(0x6ff7fc))
+            }
+        }
     }
 
     /**
