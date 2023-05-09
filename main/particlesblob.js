@@ -1,3 +1,7 @@
+import * as THREE from 'three';
+import { gsap } from 'gsap';
+import ballSprite from '../assets/images/circle-sprite.png'
+console.log(ballSprite);
 
 const noise = `
   // GLSL textureless classic 3D noise "cnoise",
@@ -132,6 +136,8 @@ const vertexShader = `
 
 const fragmentShader = `
   varying vec3 vNormal;
+
+  // uniform sampler2D pointTexture;
   
   uniform float uTime;
   
@@ -139,166 +145,182 @@ const fragmentShader = `
     vec3 color = vec3(1.0);
     
     gl_FragColor = vec4(vNormal, 1.0);
+
+    // gl_FragColor = gl_FragColor * texture2D( pointTexture, gl_PointCoord );
+
   }  
 `;
 
-
 //MAGIC BALL ANIMATION
 class ScrollStage {
-    constructor() {
+  constructor() {
 
-        this.canvasWrapper = document.querySelector('.canvas');
+    this.canvasWrapper = document.querySelector('.canvas');
 
-        this.viewport = {
-            width: window.innerWidth,
-            height: window.innerHeight,
-        }
-
-        this.mouse = {
-            x: 0,
-            y: 0
-        }
-
-        this.settings = {
-            speed: 0.2,
-            density: 2,
-            strength: 0.2,
-        }
-
-        this.scene = new THREE.Scene()
-
-        this.renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            alpha: true
-        })
-
-        this.canvas = this.renderer.domElement
-
-        this.camera = new THREE.PerspectiveCamera(
-            75,
-            this.viewport.width / this.viewport.height,
-            .1,
-            10
-        )
-
-        this.clock = new THREE.Clock()
-
-        this.update = this.update.bind(this)
-
-        this.init()
+    this.viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight,
     }
 
-    init() {
-        this.addCanvas()
-        this.addCamera()
-        this.addMesh()
-        this.addEventListeners()
-        this.onResize()
-        this.update()
-
+    this.mouse = {
+      x: 0,
+      y: 0
     }
 
-    /**
-     * STAGE
-     */
-    addCanvas() {
-        this.canvas.classList.add('webgl')
-        this.canvasWrapper.appendChild(this.canvas)
+    this.settings = {
+      speed: 0.2,
+      density: 2,
+      strength: 0.2,
     }
 
-    addCamera() {
-        this.camera.position.set(0, 0, 2)
-        this.scene.add(this.camera)
+    this.scene = new THREE.Scene()
+
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true
+    });
+    // this.renderer.setClearColor(0xffddee)
+
+    this.canvas = this.renderer.domElement
+
+    this.camera = new THREE.PerspectiveCamera(
+      75,
+      this.viewport.width / this.viewport.height,
+      .1,
+      10
+    )
+
+    this.clock = new THREE.Clock()
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5, 100);
+    const light = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.9);
+
+    directionalLight.position.set(8, 8, 2);
+    directionalLight.castShadow = true;
+
+    directionalLight.shadow.mapSize.width = 512; // default
+    directionalLight.shadow.mapSize.height = 512; // default
+    directionalLight.shadow.camera.near = 0.5; // default
+    directionalLight.shadow.camera.far = 500;
+
+    this.scene.add(light);
+    this.scene.add(directionalLight);
+
+    this.init()
+  }
+
+  init() {
+    this.addCanvas()
+    this.addCamera()
+    this.addMesh()
+    this.addEventListeners()
+    this.onResize()
+    this.update()
+  }
+
+  /**
+   * STAGE
+   */
+  addCanvas() {
+    this.canvas.classList.add('webgl')
+    this.canvasWrapper.appendChild(this.canvas)
+  }
+
+  addCamera() {
+    this.camera.position.set(0, 0, 2)
+    this.scene.add(this.camera)
+  }
+
+  /**
+   * OBJECT
+   */
+  addMesh() {
+    // this.geometry = new THREE.IcosahedronGeometry(1.1, 35)
+    this.geometry = new THREE.SphereGeometry(0.9, 128, 128)
+    this.bufferGeo = new THREE.BufferGeometry().fromGeometry(this.geometry);
+    this.material = new THREE.ShaderMaterial({
+      wireframe: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: {
+        uTime: { value: 0 },
+        uSpeed: { value: this.settings.speed },
+        uNoiseDensity: { value: this.settings.density },
+        uNoiseStrength: { value: this.settings.strength },
+        // pointTexture: { value: new THREE.TextureLoader().load(ballSprite) }
+      },
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      transparent: false,
+    })
+
+    this.mesh = new THREE.Mesh(this.bufferGeo, this.material)
+    // this.mesh = new THREE.Points(this.geometry, this.material);
+    this.scene.add(this.mesh)
+  }
+
+  /**
+   * EVENTS
+   */
+  addEventListeners() {
+    window.addEventListener('load', this.onLoad.bind(this))
+
+    window.addEventListener('mousemove', this.onMouseMove.bind(this))  // enable for soundcheck (→ console)
+
+    window.addEventListener('resize', this.onResize.bind(this))
+  }
+
+  onLoad() {
+    document.body.classList.remove('loading')
+  }
+
+  onMouseMove(event) {
+    // play with it!
+    // enable / disable / change x, y, multiplier …
+
+    this.mouse.x = (event.clientX / this.viewport.width).toFixed(2) * 4
+    this.mouse.y = (event.clientY / this.viewport.height).toFixed(2) * 2
+
+    gsap.to(this.mesh.material.uniforms.uNoiseDensity, { value: ((this.mouse.y) / 10) })
+    gsap.to(this.mesh.rotation, { y: ((this.mouse.x)) })
+
+    // console.info(`X: ${this.mouse.x}  |  Y: ${this.mouse.y}`)
+  }
+
+  onResize() {
+    this.viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight
     }
 
-    /**
-     * OBJECT
-     */
-    addMesh() {
-        // this.geometry = new THREE.IcosahedronGeometry(1.1, 35)
-        this.geometry = new THREE.SphereGeometry(0.9, 128, 128)
+    this.camera.aspect = this.canvasWrapper.clientWidth / this.canvasWrapper.clientHeight
+    this.camera.updateProjectionMatrix()
 
-        this.material = new THREE.ShaderMaterial({
-            wireframe: true,
-            blending: THREE.AdditiveBlending,
-            vertexShader: vertexShader,
-            fragmentShader: fragmentShader,
-            uniforms: {
-                uTime: { value: 0 },
-                uSpeed: { value: this.settings.speed },
-                uNoiseDensity: { value: this.settings.density },
-                uNoiseStrength: { value: this.settings.strength },
-            },
-        })
+    this.renderer.setSize(this.canvasWrapper.clientWidth, this.canvasWrapper.clientHeight)
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+  }
 
-        this.mesh = new THREE.Mesh(this.geometry, this.material)
+  /**
+   * LOOP
+   */
+  update() {
+    requestAnimationFrame(this.update.bind(this))
+    this.render()
+  }
 
-        this.scene.add(this.mesh)
-    }
+  /**
+   * RENDER
+   */
+  render() {
 
-    /**
-     * EVENTS
-     */
-    addEventListeners() {
-        window.addEventListener('load', this.onLoad.bind(this))
+    this.mesh.rotation.z += 0.001;
+    // Update uniforms
+    this.mesh.material.uniforms.uTime.value = this.clock.getElapsedTime();
+    this.mesh.material.uniforms.uSpeed.value = this.settings.speed;
+    this.mesh.material.uniforms.uNoiseDensity.value = this.settings.density;
+    this.mesh.material.uniforms.uNoiseStrength.value = this.settings.strength;
 
-        window.addEventListener('mousemove', this.onMouseMove.bind(this))  // enable for soundcheck (→ console)
-
-        window.addEventListener('resize', this.onResize.bind(this))
-    }
-
-    onLoad() {
-        document.body.classList.remove('loading')
-    }
-
-    onMouseMove(event) {
-        // play with it!
-        // enable / disable / change x, y, multiplier …
-
-        this.mouse.x = (event.clientX / this.viewport.width).toFixed(2) * 4
-        this.mouse.y = (event.clientY / this.viewport.height).toFixed(2) * 2
-
-        gsap.to(this.mesh.material.uniforms.uNoiseDensity, { value: ((this.mouse.y) / 10) })
-        gsap.to(this.mesh.rotation, { y: ((this.mouse.x)) })
-
-        // console.info(`X: ${this.mouse.x}  |  Y: ${this.mouse.y}`)
-    }
-
-    onResize() {
-        this.viewport = {
-            width: window.innerWidth,
-            height: window.innerHeight
-        }
-
-        this.camera.aspect = this.canvasWrapper.clientWidth / this.canvasWrapper.clientHeight
-        this.camera.updateProjectionMatrix()
-
-        this.renderer.setSize(this.canvasWrapper.clientWidth, this.canvasWrapper.clientHeight)
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
-    }
-
-    /**
-     * LOOP
-     */
-    update() {
-        requestAnimationFrame(this.update.bind(this))
-        this.render()
-    }
-
-    /**
-     * RENDER
-     */
-    render() {
-
-        this.mesh.rotation.y += 0.001;
-        // Update uniforms
-        this.mesh.material.uniforms.uTime.value = this.clock.getElapsedTime();
-        this.mesh.material.uniforms.uSpeed.value = this.settings.speed;
-        this.mesh.material.uniforms.uNoiseDensity.value = this.settings.density;
-        this.mesh.material.uniforms.uNoiseStrength.value = this.settings.strength;
-
-        this.renderer.render(this.scene, this.camera)
-    }
+    this.renderer.render(this.scene, this.camera)
+  }
 }
 
 new ScrollStage()

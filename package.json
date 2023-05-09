@@ -26,7 +26,11 @@
     "webpack-dev-server": "^4.9.3"
   },
   "dependencies": {
+    "gl-noise": "^1.6.1",
     "gsap": "^3.11.5",
-    "three": "^0.152.2"
+    "perlin-noise-3d": "^0.5.4",
+    "perlin.js": "^1.0.0",
+    "simplex-noise": "^3.0.1",
+    "three": "^0.124.0"
   }
 }
